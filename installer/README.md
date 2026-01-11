@@ -82,6 +82,21 @@ Qlip は「常に録画し続けて、必要な瞬間だけ“直近N秒”を�
 
 ※ エンドユーザーは追加ツール不要（セットアップEXEを実行するだけ）
 
+## デプロイ（単一スクリプト）
+
+EULA更新などで Release の成果物を差し替えたい場合、リポジトリ直下の `deploy.ps1` で
+「Qlip本体（portable zip）」または「インストーラEXE」のどちらかを選んでデプロイできます。
+
+例: インストーラEXEをビルドして `v1.0.0` にアップロード
+
+- `powershell -ExecutionPolicy Bypass -File .\deploy.ps1 -Target installer -Tag v1.0.0 -Upload`
+
+例: portable版zipをビルドして `v1.0.0` にアップロード
+
+- `powershell -ExecutionPolicy Bypass -File .\deploy.ps1 -Target app -Tag v1.0.0 -Upload`
+
+※ `-Upload` を付けない場合はローカル生成のみ行います。
+
 ## 同梱 ffmpeg
 
 インストール先の `ffmpeg\ffmpeg.exe` を Qlip が優先的に利用します。
