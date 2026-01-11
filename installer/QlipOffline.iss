@@ -1,7 +1,14 @@
 #define MyAppName "Qlip"
 #define MyAppExeName "Qlip.exe"
-#define MyAppVersion "1.0.0"
 #define MyAppPublisher "Qlip"
+
+; Version can be injected by CI via env var (e.g. tag name)
+#define EnvVersion GetEnv('QLIP_VERSION')
+#if EnvVersion == ""
+	#define MyAppVersion "1.0.0"
+#else
+	#define MyAppVersion EnvVersion
+#endif
 
 [Setup]
 AppId={{7A1A2C6D-5A2B-4B78-AF10-8F0C3A5A5B77}}
@@ -12,7 +19,7 @@ DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 OutputDir=dist
-OutputBaseFilename=QlipSetup_{#MyAppVersion}_win-x64_offline
+OutputBaseFilename=QlipSetup_{#MyAppVersion}_win-x64
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 Compression=lzma2
