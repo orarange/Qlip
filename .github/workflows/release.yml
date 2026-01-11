@@ -1,0 +1,125 @@
+name: Release (build Qlip-src + web installer)
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Target tag (e.g. v1.0.0). For workflow_dispatch only."
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout installer repo (this)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine version
+        id: ver
+        shell: pwsh
+        run: |
+          $tag = "${{ github.event.release.tag_name }}"
+          if ([string]::IsNullOrWhiteSpace($tag)) { $tag = "${{ inputs.tag }}" }
+          if ([string]::IsNullOrWhiteSpace($tag)) { $tag = "v0.0.0" }
+          $ver = $tag.TrimStart('v')
+          "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "ver=$ver" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Checkout Qlip-src
+        uses: actions/checkout@v4
+        with:
+          repository: orarange/Qlip-src
+          path: qlip-src
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Publish Qlip (self-contained)
+        shell: pwsh
+        run: |
+          $out = Join-Path $PWD 'installer\publish'
+          if (Test-Path $out) { Remove-Item $out -Recurse -Force }
+          New-Item -ItemType Directory -Path $out | Out-Null
+          dotnet publish .\qlip-src\Qlip.csproj -c Release -r win-x64 -p:SelfContained=true -p:PublishTrimmed=false -o "$out"
+
+      - name: Download and bundle FFmpeg (LGPL)
+        shell: pwsh
+        run: |
+          $work = Join-Path $PWD 'installer\work'
+          $publish = Join-Path $PWD 'installer\publish'
+          if (Test-Path $work) { Remove-Item $work -Recurse -Force }
+          New-Item -ItemType Directory -Path $work | Out-Null
+
+          $zipUrl = 'https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-lgpl.zip'
+          $zipPath = Join-Path $work 'ffmpeg.zip'
+          Invoke-WebRequest -Uri $zipUrl -OutFile $zipPath
+
+          $extract = Join-Path $work 'ffmpeg'
+          Expand-Archive -Force -LiteralPath $zipPath -DestinationPath $extract
+          $ffmpegExe = Get-ChildItem -Path $extract -Recurse -Filter 'ffmpeg.exe' | Select-Object -First 1
+          if (-not $ffmpegExe) { throw 'ffmpeg.exe not found in archive' }
+
+          $ffmpegDir = Join-Path $publish 'ffmpeg'
+          $licDir = Join-Path $ffmpegDir 'licenses'
+          New-Item -ItemType Directory -Path $licDir -Force | Out-Null
+          Copy-Item $ffmpegExe.FullName (Join-Path $ffmpegDir 'ffmpeg.exe') -Force
+
+          Get-ChildItem -Path $extract -Recurse -Include 'LICENSE*','COPYING*','README*' | ForEach-Object {
+            try { Copy-Item $_.FullName (Join-Path $licDir $_.Name) -Force } catch {}
+          }
+
+          if (Test-Path .\THIRD-PARTY-NOTICES.txt) {
+            Copy-Item .\THIRD-PARTY-NOTICES.txt (Join-Path $publish 'THIRD-PARTY-NOTICES.txt') -Force
+          }
+
+      - name: Create package zip (asset for installer)
+        shell: pwsh
+        run: |
+          $dist = Join-Path $PWD 'installer\dist'
+          New-Item -ItemType Directory -Path $dist -Force | Out-Null
+          $zipOut = Join-Path $dist 'Qlip_win-x64.zip'
+          if (Test-Path $zipOut) { Remove-Item $zipOut -Force }
+          Compress-Archive -Path (Join-Path $PWD 'installer\publish\*') -DestinationPath $zipOut
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          choco install innosetup -y
+
+      - name: Build web installer (QlipSetup_*.exe)
+        shell: pwsh
+        run: |
+          $env:QLIP_VERSION = "${{ steps.ver.outputs.ver }}"
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { $iscc = "${env:ProgramFiles}\Inno Setup 6\ISCC.exe" }
+          if (-not (Test-Path $iscc)) { throw "ISCC.exe not found" }
+          & $iscc .\installer\Qlip.iss
+
+      - name: Upload release assets
+        if: ${{ github.event_name == 'release' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            installer/dist/Qlip_win-x64.zip
+            installer/dist/QlipSetup_*_win-x64.exe
+
+      - name: Upload workflow artifacts (for workflow_dispatch)
+        if: ${{ github.event_name != 'release' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: qlip-release-artifacts
+          path: |
+            installer/dist/Qlip_win-x64.zip
+            installer/dist/QlipSetup_*_win-x64.exe

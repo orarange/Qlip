@@ -1,0 +1,18 @@
+Qlip - Third Party Notices
+
+This product bundles third-party software.
+
+FFmpeg
+- Project: FFmpeg (https://ffmpeg.org/)
+- Qlip bundles a prebuilt FFmpeg Win64 build for convenience.
+- License obligations depend on the exact build and enabled components.
+
+You must:
+- Include the relevant FFmpeg license texts with your distribution.
+- Provide the corresponding source or offer, if required by the chosen build/license.
+
+NuGet dependencies
+- ScreenRecorderLib (via NuGet)
+- YamlDotNet (via NuGet)
+
+Please review each dependency's license and comply with its terms.

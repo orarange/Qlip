@@ -1,0 +1,14 @@
+Qlip - Third Party Notices
+
+This installer installs Qlip and bundled third-party components.
+
+FFmpeg
+- Project: FFmpeg (https://ffmpeg.org/)
+- The bundled build and its license texts are installed under:
+  {app}\ffmpeg\licenses
+
+NuGet dependencies
+- ScreenRecorderLib (via NuGet)
+- YamlDotNet (via NuGet)
+
+Please review each dependency's license and comply with its terms.
