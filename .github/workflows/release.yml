@@ -35,9 +35,21 @@ jobs:
           "ver=$ver" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
       - name: Checkout Qlip-src
+        if: ${{ secrets.QLIP_SRC_TOKEN != '' }}
         uses: actions/checkout@v4
         with:
           repository: orarange/Qlip-src
+          ref: ${{ steps.ver.outputs.tag }}
+          path: qlip-src
+          fetch-depth: 0
+          token: ${{ secrets.QLIP_SRC_TOKEN }}
+
+      - name: Checkout Qlip-src
+        if: ${{ secrets.QLIP_SRC_TOKEN == '' }}
+        uses: actions/checkout@v4
+        with:
+          repository: orarange/Qlip-src
+          ref: ${{ steps.ver.outputs.tag }}
           path: qlip-src
           fetch-depth: 0
 

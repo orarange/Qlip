@@ -49,6 +49,17 @@ Webインストーラ（`installer/Qlip.iss`）は、インストール時に **
 - `orarange/Qlip-src`: `dotnet publish` して Qlip 本体（+ ffmpeg同梱）を作る
 - `orarange/Qlip`: 上記成果物を `Qlip_win-x64.zip` にして Releases に添付し、Webインストーラを配布する
 
+## GitHub Actions（重要）
+
+`orarange/Qlip` の Actions は、別リポジトリ `orarange/Qlip-src` を checkout してビルドします。
+
+- `Qlip-src` が **public** の場合: 追加設定なしで動きます。
+- `Qlip-src` が **private** の場合: `orarange/Qlip` 側の Repository secrets に `QLIP_SRC_TOKEN` が必要です。
+  - classic PAT なら scopes は `repo`（読み取りに必要）
+  - fine-grained PAT なら `orarange/Qlip-src` に対して `Contents: Read` が付くように作成
+
+作成したPATを `Settings > Secrets and variables > Actions > New repository secret` から `QLIP_SRC_TOKEN` として登録してください。
+
 ## 注意
 
 - `installer/EULA.txt` はひな形です。配布前に必ず内容を確定してください。
